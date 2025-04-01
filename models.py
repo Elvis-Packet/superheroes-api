@@ -1,38 +1,49 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData, Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy_serializer import SerializerMixin
-from sqlalchemy.orm import validates
+from datetime import datetime
 
-db = SQLAlchemy()  # Define the SQLAlchemy database instance
+metadata = MetaData(
+    naming_convention={
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    }
+)
+db = SQLAlchemy(metadata=metadata)
 
 class Superhero(db.Model, SerializerMixin):
     __tablename__ = 'superheroes'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, index=True)
-    power = db.Column(db.String)
-    city_id = db.Column(db.Integer, db.ForeignKey('cities.id'))
-    city = db.relationship("City", back_populates="superheroes")
-    created_at = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime)
+    id = Column(Integer, primary_key=True)
+    name = Column(String, index=True)
+    city_id = Column(Integer, ForeignKey('cities.id'))
+    city = relationship("City", back_populates="superheroes")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    heroes = relationship("Hero", back_populates="superhero")
 
 class City(db.Model, SerializerMixin):
     __tablename__ = 'cities'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, index=True)
-    superheroes = db.relationship("Superhero", back_populates="city")
+    id = Column(Integer, primary_key=True)
+    name = Column(String, index=True)
+    superheroes = relationship("Superhero", back_populates="city")
 
 class Hero(db.Model, SerializerMixin):
     __tablename__ = 'heroes'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, index=True)
-    super_name = db.Column(db.String, index=True)
-    hero_powers = db.relationship("HeroPower", back_populates="hero")
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    super_name = Column(String, nullable=False)
+    superpower = Column(String, nullable=False)
+    superhero_id = Column(Integer, ForeignKey('superheroes.id'))
+    superhero = relationship("Superhero", back_populates="heroes")
+    hero_powers = relationship("HeroPower", back_populates="hero")
 
 class Power(db.Model, SerializerMixin):
     __tablename__ = 'powers'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, index=True)
-    description = db.Column(db.String, nullable=False)
-    hero_powers = db.relationship("HeroPower", back_populates="power")
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=False, default="Default description with sufficient length.")
+
+    hero_powers = relationship("HeroPower", back_populates="power")
 
     @validates('description')
     def validate_description(self, key, value):
@@ -42,12 +53,12 @@ class Power(db.Model, SerializerMixin):
 
 class HeroPower(db.Model, SerializerMixin):
     __tablename__ = 'hero_powers'
-    id = db.Column(db.Integer, primary_key=True)
-    strength = db.Column(db.String, nullable=False)
-    hero_id = db.Column(db.Integer, db.ForeignKey('heroes.id'))
-    power_id = db.Column(db.Integer, db.ForeignKey('powers.id'))
-    hero = db.relationship("Hero", back_populates="hero_powers")
-    power = db.relationship("Power", back_populates="hero_powers")
+    id = Column(Integer, primary_key=True)
+    strength = Column(String, nullable=False)
+    hero_id = Column(Integer, ForeignKey('heroes.id'))
+    power_id = Column(Integer, ForeignKey('powers.id'))
+    hero = relationship("Hero", back_populates="hero_powers")
+    power = relationship("Power", back_populates="hero_powers")
 
     @validates('strength')
     def validate_strength(self, key, value):

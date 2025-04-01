@@ -1,13 +1,16 @@
 from flask import Flask, jsonify, request, abort
+from flask_migrate import Migrate
 from models import db, Hero, Power, HeroPower
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///superheros.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+migrate = Migrate(app, db)
+
 @app.route('/')
 def index():
-    return ({"message": "Welcome to the Superhero API!"})
+    return ({"message": "WELCOME TO ELVIS-PACKET SUPERHERO CLUB !"})
 @app.route('/heroes', methods=['GET'])
 def get_heroes():
     heroes = Hero.query.all()
